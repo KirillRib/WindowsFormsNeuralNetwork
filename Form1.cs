@@ -32,44 +32,64 @@ namespace WindowsFormsNeuralNetwork
             videodevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
             videoSource = new VideoCaptureDevice(videodevices[0].MonikerString);
             videoSourcePlayer1.VideoSource = videoSource;
-            new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\game-of-thrones_9b94_2400x1350.jpg"), 1000, 1000));
 
+            System.DateTime DT = DateTime.Now;
+            Bitmap b = new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\000.jpg"), 200, 150);
 
+            for (int i = 0;i < 10; i++)
+                new HOG(b);
 
-            ConvolutionaryLayerArray = new ConvolutionaryLayer[5];
-            for (int i = 0; i < ConvolutionaryLayerArray.Length; i++)
-            {
-                //ConvolutionaryLayerArray[i] = new ConvolutionaryLayer(new Matrix[] { 50 * new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\000.jpg"), 100 + 20 * i, 100 + 20 * i)).HOGMatrix}, 10 + 2 * i, 10 + 2 * i);
-                ConvolutionaryLayerArray[i] = new ConvolutionaryLayer(new Matrix[] { 50 * new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\000.jpg"), 100 + 20 * i, 100 + 20 * i)).HOGMatrix }, 10 + 2 * i, 10 + 2 * i);
+            Console.WriteLine("Time 1: {0}s", (DateTime.Now - DT).TotalSeconds);
 
-            }
+            Random rnd = new Random();
 
-
-
+            ConvolutionaryLayerArray = new ConvolutionaryLayer[3];
+            ConvolutionaryLayerArrayFace = new ConvolutionaryLayer[3];
             for (int j = 0; j < ConvolutionaryLayerArray.Length; j++)
             {
-                ConvolutionaryLayerArray[j].LoadFromFile(j.ToString());
-                //foreach (Matrix M in ConvolutionaryLayerArray[j].GetArrayFilters())
-                //    M.ToNormalizeVectors(100);
+                int w = (3 * (j + 3)) / 3;
+                int h = (3 * (j + 3)) / 3;
+
+                ConvolutionaryLayerArray[j] = new ConvolutionaryLayer(new Matrix[] { 5 * new Matrix(w, h, 8, rnd), 5 * new Matrix(w, h, 8, rnd) , 5 * new Matrix(w, h, 8, rnd)}, w, h);
+
+                ConvolutionaryLayerArrayFace[j] = new ConvolutionaryLayer( new Matrix[] { 5 * new Matrix(w * 3, h * 3, 3, rnd), 5 * new Matrix(w * 3, h * 3, 3, rnd), 5 * new Matrix(w * 3, h * 3, 3, rnd) }, w * 3, h * 3);
+
+
+
+                ConvolutionaryLayerArrayFace[j].LoadFromFile("F" + j.ToString());
+                ConvolutionaryLayerArray[j].LoadFromFile("EM" + j.ToString());
             }
 
 
-            Thread myThread = new Thread(TreatmentImage);
+            pictureBox8.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox9.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox10.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox2.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox3.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox4.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox5.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox6.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox7.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox13.SizeMode = PictureBoxSizeMode.Zoom;
+
+            Thread myThread = new Thread(TreatmentImage);//Training TreatmentImage
             myThread.Start();
+            //Training();
 
 
         }
 
 
         NeuralNetwork mNeuralNetwork;
-        ConvolutionaryLayer[] ConvolutionaryLayerArray;
+        ConvolutionaryLayer[] ConvolutionaryLayerArray, ConvolutionaryLayerArrayFace;
+        
         FilterInfoCollection videodevices;
         VideoCaptureDevice videoSource;
         private void videoSourcePlayer1_NewFrame(object sender, ref Bitmap image)
         {
-            //System.DateTime DT = DateTime.Now;
-            //pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+            //BM = new Bitmap(image, 400, 300);
             BM = new Bitmap(image, 300, 220);
+            //BM = new Bitmap(image, 480, 320);
         }
 
         ImageFormat IF = System.Drawing.Imaging.ImageFormat.Png;
@@ -81,19 +101,24 @@ namespace WindowsFormsNeuralNetwork
 
         private void SaveImage()
         {
-            while (ind < 400)
+            videoSource.Start();
+            string name = @"C:/Users/Kirill/Pictures/Image/";
+            string[] dirs = Directory.GetFiles(name, " *.jpg");
+            ind = dirs.Length;
+            for (int i = 0; i < 100; i++)
             {
-                string name = "C:/Users/Kirill/Pictures/Image/0_" + ind + ".png";
                 if (BM != null)
                 {
-                    BM.Save(name, IF);
+                    BM.Save(name + ind + ".jpg", IF);
                     ind++;
                 }
                     
                 
-                Thread.Sleep(100);
+                Thread.Sleep(150);
             }
+            Console.WriteLine("Stop");
         }
+
 
         private void TreatmentImage()
         {
@@ -105,65 +130,97 @@ namespace WindowsFormsNeuralNetwork
             pictureBox5.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox6.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox7.SizeMode = PictureBoxSizeMode.Zoom;
+            Matrix pHOG = new Matrix(30, 22, 8);
+
             while (true)
             {
                 if (BM != null)
                 {
                     System.DateTime DT = DateTime.Now;
                     HOG hog = new HOG(BM);
-                    float[] a = new float[4];
+                    Console.WriteLine("TimeHOG: {0}s", (DateTime.Now - DT).TotalSeconds);
+                    float[] a;
                     int index = 0;
-                    Console.WriteLine("Time0: {0}s", (DateTime.Now - DT).TotalSeconds);
+                    float max = -100;
 
-                    Matrix answer = new Matrix(32, 24, 1);
                     for (int k = 0; k < ConvolutionaryLayerArray.Length; k++)
                     {
                         ConvolutionaryLayerArray[k].InputMatrix = hog.HOGMatrix;
                         ConvolutionaryLayerArray[k].Calculate();
-                        answer.AddPartOfMatrix(0, 0, ConvolutionaryLayerArray[k].OutputMatrix);
+                        
 
-                        //a = ConvolutionaryLayerArray[k].OutputMatrix.GetMaxIndex();
-                        //BM = AddFrameOnImage(BM, (int)a[1] * 10, (int)a[2] * 10, ConvolutionaryLayerArray[k].GetArrayFilters()[(int)a[3]].W * 10, ConvolutionaryLayerArray[k].GetArrayFilters()[(int)a[3]].H * 10);
-                    }
-                    Console.WriteLine("Time1: {0}s", (DateTime.Now - DT).TotalSeconds);
+                        ConvolutionaryLayerArrayFace[k].InputMatrix = ConvolutionaryLayerArray[k].OutputMatrix;
+                        ConvolutionaryLayerArrayFace[k].Calculate();
+                        
 
-
-
-                    a = answer.GetMaxIndex();
-
-                    float max = -100;
-                    for (int k = 0; k < ConvolutionaryLayerArray.Length; k++)
-                        if (ConvolutionaryLayerArray[k].OutputMatrix.W > (int)a[1] && ConvolutionaryLayerArray[k].OutputMatrix.H > (int)a[2] 
-                            && max < ConvolutionaryLayerArray[k].OutputMatrix.matrix[(int)a[1]][(int)a[2]][(int)a[3]])
+                        if (ConvolutionaryLayerArrayFace[k].OutputMatrix.GetMax() > max)
                         {
-                            max = ConvolutionaryLayerArray[k].OutputMatrix.matrix[(int)a[1]][(int)a[2]][(int)a[3]];
+                            max = ConvolutionaryLayerArrayFace[k].OutputMatrix.GetMax();
                             index = k;
                         }
-                    //BM.Save(@"C:\Users\Kirill\Pictures\0.jpg");
-                    //new HOG(BM).ToBitmap(20).Save(@"C:\Users\Kirill\Pictures\1.jpg");
-                    Console.WriteLine(max);
-                    if (max > 0.1f)
-                        BM = AddFrameOnImage(BM, (int)a[1] * 10, (int)a[2] * 10, ConvolutionaryLayerArray[index].GetArrayFilters()[(int)a[3]].W * 10, ConvolutionaryLayerArray[index].GetArrayFilters()[(int)a[3]].H * 10);
+                        //Console.WriteLine("Time1: {0}s", (DateTime.Now - DT).TotalSeconds);
+                    }
 
-                    pictureBox2.Image = MatrixToBitmap(1 / answer.GetMax() * answer);
-                    //pictureBox3.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[0].OutputMatrix.GetMax() * ConvolutionaryLayerArray[0].OutputMatrix);
-                    //pictureBox4.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[1].OutputMatrix.GetMax() * ConvolutionaryLayerArray[1].OutputMatrix);
+                    a = ConvolutionaryLayerArrayFace[index].OutputMatrix.GetMaxIndex();
+
+
+                    Console.WriteLine(a[0]);
+                    Console.WriteLine("Full Time:           {0}s", (DateTime.Now - DT).TotalSeconds);
+
+                    pHOG = pHOG - hog.HOGMatrixWithoutNormalization;
+                    Matrix m = pHOG.GetModuleMatrix();
+                    //pictureBox13.Image = MatrixToBitmap(pHOG.GetModuleMatrix().GetMatrixSum(2, 2));
+                    pHOG = hog.HOGMatrixWithoutNormalization;
+
+                    if (max > 0.25f)
+                        BM = AddFrameOnImage(BM, (int)a[1] * 10, (int)a[2] * 10, ConvolutionaryLayerArrayFace[index].GetArrayFilters()[(int)a[3]].W * 10, ConvolutionaryLayerArrayFace[index].GetArrayFilters()[(int)a[3]].H * 10);
+
+
+
+                    //compressionLayer.InputMatrix = answer;
+                    //compressionLayer.Calculate();
+                    //answer = compressionLayer.OutputMatrix;
+
+                    //pictureBox2.Image = MatrixToBitmap(ConvolutionaryLayerArrayFace[0].OutputMatrix, 0);
+                    //pictureBox3.Image = MatrixToBitmap(ConvolutionaryLayerArrayFace[0].OutputMatrix, 1);
+                    //pictureBox4.Image = MatrixToBitmap(ConvolutionaryLayerArrayFace[0].OutputMatrix, 2);
+                    //pictureBox5.Image = MatrixToBitmap(ConvolutionaryLayerArrayFace[1].OutputMatrix, 0);
+                    //pictureBox6.Image = MatrixToBitmap(ConvolutionaryLayerArrayFace[1].OutputMatrix, 1);
+                    //pictureBox7.Image = MatrixToBitmap(ConvolutionaryLayerArrayFace[1].OutputMatrix, 2);
+                    //pictureBox8.Image = MatrixToBitmap(ConvolutionaryLayerArrayFace[2].OutputMatrix, 0);
+                    //pictureBox9.Image = MatrixToBitmap(ConvolutionaryLayerArrayFace[2].OutputMatrix, 1);
+                    //pictureBox10.Image = MatrixToBitmap(ConvolutionaryLayerArrayFace[2].OutputMatrix, 2);
+
+
                     //pictureBox5.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[2].OutputMatrix.GetMax() * ConvolutionaryLayerArray[2].OutputMatrix);
                     //pictureBox6.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[3].OutputMatrix.GetMax() * ConvolutionaryLayerArray[3].OutputMatrix);
                     //pictureBox7.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[4].OutputMatrix.GetMax() * ConvolutionaryLayerArray[4].OutputMatrix);
 
-                    pictureBox3.Image = MatrixToBitmap(1 / max * ConvolutionaryLayerArray[0].OutputMatrix);
-                    pictureBox4.Image = MatrixToBitmap(1 / max * ConvolutionaryLayerArray[1].OutputMatrix);
-                    pictureBox5.Image = MatrixToBitmap(1 / max * ConvolutionaryLayerArray[2].OutputMatrix);
-                    pictureBox6.Image = MatrixToBitmap(1 / max * ConvolutionaryLayerArray[3].OutputMatrix);
-                    pictureBox7.Image = MatrixToBitmap(1 / max * ConvolutionaryLayerArray[4].OutputMatrix);
-                    //pictureBox7.Image = MatrixToBitmap(10 * ConvolutionaryLayerArray[5].OutputMatrix);
+                    //pictureBox2.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[0].OutputMatrix.GetMax(0) * ConvolutionaryLayerArray[0].OutputMatrix, 0);
+                    //pictureBox3.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[1].OutputMatrix.GetMax(0) * ConvolutionaryLayerArray[1].OutputMatrix, 0);
+                    //pictureBox4.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[2].OutputMatrix.GetMax(0) * ConvolutionaryLayerArray[2].OutputMatrix, 0);
+
+
+                    //pictureBox5.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[0].OutputMatrix.GetMax(1) * ConvolutionaryLayerArray[0].OutputMatrix, 1);
+                    //pictureBox6.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[1].OutputMatrix.GetMax(1) * ConvolutionaryLayerArray[1].OutputMatrix, 1);
+                    //pictureBox7.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[2].OutputMatrix.GetMax(1) * ConvolutionaryLayerArray[2].OutputMatrix, 1);
+
+
+                    //pictureBox8.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[0].OutputMatrix.GetMax(2) * ConvolutionaryLayerArray[0].OutputMatrix, 2);
+                    //pictureBox9.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[1].OutputMatrix.GetMax(2) * ConvolutionaryLayerArray[1].OutputMatrix, 2);
+                    //pictureBox10.Image = MatrixToBitmap(1 / ConvolutionaryLayerArray[2].OutputMatrix.GetMax(2) * ConvolutionaryLayerArray[2].OutputMatrix, 2);
+
+                    //pictureBox11.Image = MatrixToBitmap(1 / max * ConvolutionaryLayerArray[3].OutputMatrix, 1);
+                    //pictureBox12.Image = MatrixToBitmap(1 / max * ConvolutionaryLayerArray[4].OutputMatrix, 1);
+
+                    
 
                     pictureBox1.Image = BM;
-                    //BeginInvoke(new TB(AppText), Math.Round(CL.OutputMatrix.GetMax(), 3).ToString());
-                    Console.WriteLine("Time2: {0}s", (DateTime.Now - DT).TotalSeconds);
+
+                    //pictureBox13.Image = hog.ToBitmap(20);
+
                 }
-                Thread.Sleep(60);
+                Thread.Sleep(20);
             }
         }
 
@@ -179,6 +236,7 @@ namespace WindowsFormsNeuralNetwork
             g.Dispose();
             return InputBitmap;
         }
+
 
         private void Training()
         {
@@ -196,88 +254,85 @@ namespace WindowsFormsNeuralNetwork
                         ConvolutionaryLayerArray[index].InputMatrix = TrainingSetArray[j].InputMatrix;
                         ConvolutionaryLayerArray[index].Calculate();
 
-                        float max = ConvolutionaryLayerArray[index].OutputMatrix.GetMax();
-                        float[] a = ConvolutionaryLayerArray[index].OutputMatrix.GetMaxIndex();
-                        Erorr += Math.Abs(max - TrainingSetArray[j].OutputArray[0]) / TrainingSetArray.Length;
-                        Matrix E = new Matrix(ConvolutionaryLayerArray[index].OutputMatrix.W, ConvolutionaryLayerArray[index].OutputMatrix.H, ConvolutionaryLayerArray[index].OutputMatrix.D);
+                        ConvolutionaryLayerArrayFace[index].InputMatrix = ConvolutionaryLayerArray[index].OutputMatrix;
+                        ConvolutionaryLayerArrayFace[index].Calculate();
+
+
+                        float[] a = ConvolutionaryLayerArrayFace[index].OutputMatrix.GetMaxIndex();
+                        float max = ConvolutionaryLayerArrayFace[index].OutputMatrix.GetMax();
+
+                        
+                        Matrix E = new Matrix(ConvolutionaryLayerArrayFace[index].OutputMatrix.W, ConvolutionaryLayerArrayFace[index].OutputMatrix.H, ConvolutionaryLayerArrayFace[index].OutputMatrix.D);
                         E.matrix[(int)a[1]][(int)a[2]][(int)a[3]] = TrainingSetArray[j].OutputArray[0] - a[0];
-                        ConvolutionaryLayerArray[index].ToCorrectLayer(E, 2);
-                        //BM = new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\3\" + j / 10 + ".jpg"), 130 + 20 * index, 130 + 20 * index);
-                        //pictureBox1.Image = AddFrameOnImage(BM, (int)a[1] * 10, (int)a[2] * 10, ConvolutionaryLayerArray[index].WFilters * 10, ConvolutionaryLayerArray[index].HFilters * 10);
+
+                        ConvolutionaryLayerArrayFace[index].ToCorrectLayer(E, 2);
+                        ConvolutionaryLayerArray[index].ToCorrectLayer(ConvolutionaryLayerArrayFace[index].ErrorMatrix, 2);
+
+
+                        //BM = new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\6\" + j / 6 + ".jpg"), 40 * (index + 3), 40 * (index + 3));
+                        //pictureBox1.Image = AddFrameOnImage(BM, (int)a[1] * 10, (int)a[2] * 10, ConvolutionaryLayerArrayFace[index].WFilters * 10, ConvolutionaryLayerArrayFace[index].HFilters * 10);
                         //Thread.Sleep(p);
+
+                        Erorr += Math.Abs(max - TrainingSetArray[j].OutputArray[0]) / TrainingSetArray.Length;
+                        
                     }
                     else
                     {
-                        Matrix answer = new Matrix(TrainingSetArray[j].InputMatrix.W, TrainingSetArray[j].InputMatrix.H, 1);
-                        for (int k = 0; k < ConvolutionaryLayerArray.Length; k++)
-                        {
-                            if (TrainingSetArray[j].InputMatrix.W > ConvolutionaryLayerArray[k].GetArrayFilters()[0].W && TrainingSetArray[j].InputMatrix.H > ConvolutionaryLayerArray[k].GetArrayFilters()[0].H)
-                            {
-                                ConvolutionaryLayerArray[k].InputMatrix = TrainingSetArray[j].InputMatrix;
-                                ConvolutionaryLayerArray[k].Calculate();
-                                answer.AddPartOfMatrix(0, 0, ConvolutionaryLayerArray[k].OutputMatrix);
+                        int index = (int)TrainingSetArray[j].OutputArray[1];
+                        ConvolutionaryLayerArray[index].InputMatrix = TrainingSetArray[j].InputMatrix;
+                        ConvolutionaryLayerArray[index].Calculate();
 
-                            }
-
-                        }
-                        float[] a = answer.GetMaxIndex();
-
-                        float max = -100;
-                        int index = 0;
-                        for (int k = 0; k < ConvolutionaryLayerArray.Length; k++)
-                            if (ConvolutionaryLayerArray[k].OutputMatrix.W > (int)a[1] && ConvolutionaryLayerArray[k].OutputMatrix.H > (int)a[2]
-                                && max < ConvolutionaryLayerArray[k].OutputMatrix.matrix[(int)a[1]][(int)a[2]][(int)a[3]])
-                            {
-                                max = ConvolutionaryLayerArray[k].OutputMatrix.matrix[(int)a[1]][(int)a[2]][(int)a[3]];
-                                index = k;
-                            }
+                        ConvolutionaryLayerArrayFace[index].InputMatrix = ConvolutionaryLayerArray[index].OutputMatrix;
+                        ConvolutionaryLayerArrayFace[index].Calculate();
 
 
+                        float[] a = ConvolutionaryLayerArrayFace[index].OutputMatrix.GetMaxIndex();
+                        float max = ConvolutionaryLayerArrayFace[index].OutputMatrix.GetMax();
 
 
-                        Erorr += Math.Abs(max - TrainingSetArray[j].OutputArray[0]) / TrainingSetArray.Length;
-
-                        Matrix E = new Matrix(ConvolutionaryLayerArray[index].OutputMatrix.W, ConvolutionaryLayerArray[index].OutputMatrix.H, ConvolutionaryLayerArray[index].OutputMatrix.D);
-
-
+                        Matrix E = new Matrix(ConvolutionaryLayerArrayFace[index].OutputMatrix.W, ConvolutionaryLayerArrayFace[index].OutputMatrix.H, ConvolutionaryLayerArrayFace[index].OutputMatrix.D);
                         E.matrix[(int)a[1]][(int)a[2]][(int)a[3]] = TrainingSetArray[j].OutputArray[0] - a[0];
 
+                        ConvolutionaryLayerArrayFace[index].ToCorrectLayer(E, 5);
+                        ConvolutionaryLayerArray[index].ToCorrectLayer(ConvolutionaryLayerArrayFace[index].ErrorMatrix, 5);
 
-                        ConvolutionaryLayerArray[index].ToCorrectLayer(E, 5);
+                        //BM = new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\0\" + j / 6 + ".jpg"), 100 * (index + 3), 100 * (index + 3));
+                        //pictureBox1.Image = AddFrameOnImage(BM, (int)a[1] * 10, (int)a[2] * 10, ConvolutionaryLayerArrayFace[index].WFilters * 10, ConvolutionaryLayerArrayFace[index].HFilters * 10);
+                        //Thread.Sleep(p);
+
+                        Erorr += Math.Abs(max - TrainingSetArray[j].OutputArray[0]) / TrainingSetArray.Length;
                     }
                 }
                 Console.WriteLine(Erorr);
                 for (int j = 0; j < ConvolutionaryLayerArray.Length; j++)
                 {
-                    ConvolutionaryLayerArray[j].SaveInFile(j.ToString());
+                    ConvolutionaryLayerArrayFace[j].SaveInFile("F" + j.ToString());
+                    ConvolutionaryLayerArray[j].SaveInFile("EM" + j.ToString());
                 }
             }
             for (int j = 0; j < ConvolutionaryLayerArray.Length; j++)
             {
-                ConvolutionaryLayerArray[j].SaveInFile(j.ToString());
+                //ConvolutionaryLayerArray[j].SaveInFile("M" + j.ToString());
             }
         }
 
         public TrainingSet[] LoadImages()
         {
             Random rnd = new Random();
-            TrainingSet[] TrainingSetArray = new TrainingSet[600 * 5];
+            TrainingSet[] TrainingSetArray = new TrainingSet[2200 * 3];
             List<TrainingSet> TrainingSetLis = new List<TrainingSet>();
             //StreamReader sr = new StreamReader(@"C:\Users\Kirill\Pictures\Image\1\Face.txt");
-            for (int i = 0; i < 300; i++)
+            for (int i = 0; i < 1100; i++)
             {
-                for (int k = 0; k < 5; k++)
+                for (int k = 0; k < 3; k++)
                 {
-                    TrainingSetLis.Add(new TrainingSet(new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\0\" + (i + 150 * k) + ".jpg"), 250, 200)).HOGMatrix, new float[] { 0 }));
-                    TrainingSetLis.Add(new TrainingSet(new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\3\" + i + ".jpg"), 120 + 20 * k, 120 + 20 * k)).HOGMatrix, new float[] { 1, k }));
-                }
+                    TrainingSetLis.Add(new TrainingSet(new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\0\" + (i) + ".jpg"), 100 * (k + 3), 100 * (k + 3))).HOGMatrix, new float[] { 0, k }));
+                    TrainingSetLis.Add(new TrainingSet(new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\6\" + i + ".jpg"), 40 * (k + 3), 40 * (k + 3))).HOGMatrix, new float[] { 1, k }));
+                    //TrainingSetLis.Add(new TrainingSet(new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\4\" + i + ".jpg"), 40 * (k + 3), 40 * (k + 3))).HOGMatrix, new float[] { 1, k }));
 
-                //string[] s = sr.ReadLine().Split();
-                //Bitmap b = new Bitmap(@"C:\Users\Kirill\Pictures\Image\1\" + i + ".jpg");
-                //TrainingSetLis.Add(new TrainingSet(new HOG(b).HOGMatrix, new float[] { 1, float.Parse(s[0]) / 10, float.Parse(s[1]) / 10,
-                //    float.Parse(s[2]) / 10, float.Parse(s[3]) / 10}));
+                }
             }
-            for (int i = 0; i < 600 * 5; i++)
+            for (int i = 0; i < 2200 * 3; i++)
             {
                 //int ind = (int)(rnd.NextDouble() * TrainingSetLis.Count);
                 TrainingSetArray[i] = TrainingSetLis[i];
@@ -327,9 +382,130 @@ namespace WindowsFormsNeuralNetwork
             // Перебираем пикселы по 3 байта на каждый и меняем значения
             for (int counter = 0; counter < rgbValues.Length - 2; counter += 3)
             {
-                rgbValues[counter] = (byte)(matrix.matrix[ind % matrix.W][ind / matrix.W][0] * 255);
-                rgbValues[counter + 1] = (byte)(matrix.matrix[ind % matrix.W][ind / matrix.W][0] * 255);
-                rgbValues[counter + 2] = (byte)(matrix.matrix[ind % matrix.W][ind / matrix.W][0] * 255);
+                float l = 0;
+                for (int i = 0; i < matrix.D; i++)
+                    l += matrix.matrix[ind % matrix.W][ind / matrix.W][i] * matrix.matrix[ind % matrix.W][ind / matrix.W][i];
+                l = (float)Math.Sqrt(l);
+                if (l > 1)
+                    l = 1;
+                if (l < 0)
+                    l = 0;
+                rgbValues[counter] = (byte)(l * 255);
+                rgbValues[counter + 1] = (byte)(l * 255);
+                rgbValues[counter + 2] = (byte)(l * 255);
+                if (ind % matrix.W == matrix.W - 1)
+                {
+                    counter = bmpData.Stride * ind / matrix.W + 1;
+                }
+                ind++;
+
+            }
+            // Копируем набор данных обратно в изображение
+            Marshal.Copy(rgbValues, 0, ptr, numBytes);
+
+            // Разблокируем набор данных изображения в памяти.
+            bmp.UnlockBits(bmpData);
+
+            return bmp;
+        }
+        private Bitmap MatrixToBitmap(Matrix matrix, int d)
+        {
+            Bitmap bmp = new Bitmap(matrix.W, matrix.H);
+
+            // Задаём формат Пикселя.
+            PixelFormat pxf = PixelFormat.Format24bppRgb;
+
+            // Получаем данные картинки.
+            Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+            //Блокируем набор данных изображения в памяти
+            BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, pxf);
+
+            // Получаем адрес первой линии.
+            IntPtr ptr = bmpData.Scan0;
+
+            // Задаём массив из Byte и помещаем в него надор данных.
+            // int numBytes = bmp.Width * bmp.Height * 3; 
+            //На 3 умножаем - поскольку RGB цвет кодируется 3-мя байтами
+            //Либо используем вместо Width - Stride
+            int numBytes = bmpData.Stride * bmp.Height;
+            int widthBytes = bmpData.Stride;
+            byte[] rgbValues = new byte[numBytes];
+
+            // Копируем значения в массив.
+            Marshal.Copy(ptr, rgbValues, 0, numBytes);
+
+
+            int ind = 0;
+            // Перебираем пикселы по 3 байта на каждый и меняем значения
+            for (int counter = 0; counter < rgbValues.Length - 2; counter += 3)
+            {
+                float l = 0;
+                l = matrix.matrix[ind % matrix.W][ind / matrix.W][d];
+                if (l > 1)
+                    l = 1;
+                if (l < 0)
+                    l = 0;
+                rgbValues[counter] = (byte)(l * 255);
+                rgbValues[counter + 1] = (byte)(l * 255);
+                rgbValues[counter + 2] = (byte)(l * 255);
+                if (ind % matrix.W == matrix.W - 1)
+                {
+                    counter = bmpData.Stride * ind / matrix.W + 1;
+                }
+                ind++;
+
+            }
+            // Копируем набор данных обратно в изображение
+            Marshal.Copy(rgbValues, 0, ptr, numBytes);
+
+            // Разблокируем набор данных изображения в памяти.
+            bmp.UnlockBits(bmpData);
+
+            return bmp;
+        }
+        private Bitmap MatrixToBitmap(Matrix matrix, float k)
+        {
+            Bitmap bmp = new Bitmap(matrix.W, matrix.H);
+
+            // Задаём формат Пикселя.
+            PixelFormat pxf = PixelFormat.Format24bppRgb;
+
+            // Получаем данные картинки.
+            Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+            //Блокируем набор данных изображения в памяти
+            BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, pxf);
+
+            // Получаем адрес первой линии.
+            IntPtr ptr = bmpData.Scan0;
+
+            // Задаём массив из Byte и помещаем в него надор данных.
+            // int numBytes = bmp.Width * bmp.Height * 3; 
+            //На 3 умножаем - поскольку RGB цвет кодируется 3-мя байтами
+            //Либо используем вместо Width - Stride
+            int numBytes = bmpData.Stride * bmp.Height;
+            int widthBytes = bmpData.Stride;
+            byte[] rgbValues = new byte[numBytes];
+
+            // Копируем значения в массив.
+            Marshal.Copy(ptr, rgbValues, 0, numBytes);
+
+
+            int ind = 0;
+            // Перебираем пикселы по 3 байта на каждый и меняем значения
+            for (int counter = 0; counter < rgbValues.Length - 2; counter += 3)
+            {
+                float l = 0;
+                for (int i = 0; i < matrix.D; i++)
+                    l += matrix.matrix[ind % matrix.W][ind / matrix.W][i] * matrix.matrix[ind % matrix.W][ind / matrix.W][i];
+                l = (float)Math.Sqrt(l);
+                l *= k;
+                if (l > 1)
+                    l = 1;
+                if (l < 0)
+                    l = 0;
+                rgbValues[counter] = (byte)(l * 255);
+                rgbValues[counter + 1] = (byte)(l * 255);
+                rgbValues[counter + 2] = (byte)(l * 255);
                 if (ind % matrix.W == matrix.W - 1)
                 {
                     counter = bmpData.Stride * ind / matrix.W + 1;
@@ -356,7 +532,7 @@ namespace WindowsFormsNeuralNetwork
         }
 
 
-        
+
         public void CreatingLibrary()
         {
             Random rnd = new Random(); 

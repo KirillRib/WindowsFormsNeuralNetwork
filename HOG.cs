@@ -12,7 +12,8 @@ namespace NeuralNetworkLibrary
     class HOG
     {
         public Matrix HOGMatrix;
-        private float[][] BWImage;
+        public Matrix HOGMatrixWithoutNormalization;
+        public float[][] BWImage;
         public HOG(Bitmap InBitmap)
         {
             //System.DateTime DT = DateTime.Now;
@@ -23,65 +24,22 @@ namespace NeuralNetworkLibrary
 
         public void ConvertBWImageToHOG(int w, int h)
         {
+            
+
             HOGMatrix = new Matrix(BWImage.Length / 10, BWImage[0].Length / 10, 8);
-            float[][] Module = new float[BWImage.Length / 10][];
-            for (int i = 0; i < Module.Length; i++)
-            {
-                Module[i] = new float[BWImage[0].Length / 10];
-                for (int j = 1; j < Module[i].Length - 1; j++)
-                    Module[i][j] = 0;
-            }
+
+
             for (int i = 1; i < BWImage.Length - 1; i++)
                 for (int j = 1; j < BWImage[i].Length - 1; j++)
                 {
                     float x = (BWImage[i + 1][j] - BWImage[i - 1][j]);
                     float y = (BWImage[i][j + 1] - BWImage[i][j - 1]);
                     float l = (float)Math.Sqrt(x * x + y * y);
-                    Module[i / 10][j / 10] += l * l;
-                    HOGMatrix.matrix[i / 10][j / 10][GetIndexOfBin(x, y, l)] = l;
+                    int index = GetIndexOfBin(x, y, l);
+                    HOGMatrix.matrix[i / 10][j / 10][index] += l;
                 }
 
-            //float[][] AverageDeltaImage = new float[Module.Length][];
-            //for (int i = 0; i < AverageDeltaImage.Length; i++)
-            //    AverageDeltaImage[i] = new float[Module[i].Length];
-
-            //AverageDeltaImage[0][0] = Module[0][0];
-            //for (int i = 1; i < AverageDeltaImage.Length; i++)
-            //    AverageDeltaImage[i][0] = AverageDeltaImage[i - 1][0] + Module[i][0];
-            //for (int j = 1; j < AverageDeltaImage[0].Length; j++)
-            //    AverageDeltaImage[0][j] = AverageDeltaImage[0][j - 1] + Module[0][j];
-
-            //for (int i = 1; i < AverageDeltaImage.Length; i++)
-            //    for (int j = 1; j < AverageDeltaImage[0].Length; j++)
-            //        AverageDeltaImage[i][j] = AverageDeltaImage[i - 1][j] + AverageDeltaImage[i][j - 1] - AverageDeltaImage[i - 1][j - 1] + Module[i][j];
-
-
-            //for (int i = w / 2; i < Module.Length - w / 2; i++)
-            //    for (int j = h / 2; j < Module[0].Length - h / 2; j++)
-            //    {
-            //        Module[i][j] = (AverageDeltaImage[i - w / 2][j - h / 2] - AverageDeltaImage[i + w / 2][j - h / 2] - AverageDeltaImage[i - w / 2][j + h / 2] + AverageDeltaImage[i + w / 2][j + h / 2]) / w / h;
-            //    }
-            //for (int i = 0; i < w / 2; i++)
-            //    for (int j = 0; j < h / 2; j++)
-            //    {
-            //        Module[i][j] = Module[w / 2][h / 2];
-            //        Module[i][Module[0].Length - 1 - j] = Module[w / 2][Module[0].Length - 1 - h / 2];
-            //        Module[Module.Length - 1 - i][j] = Module[Module.Length - 1 - w / 2][h / 2];
-            //        Module[Module.Length - 1 - i][Module[0].Length - 1 - j] = Module[Module.Length - 1 - w / 2][Module[0].Length - 1 - h / 2];
-            //    }
-            //for (int i = w / 2; i < Module.Length - w / 2; i++)
-            //    for (int j = 0; j < h / 2; j++)
-            //    {
-            //        Module[i][j] = Module[i][h / 2];
-            //        Module[i][Module[0].Length - 1 - j] = Module[i][Module[0].Length - 1 - h / 2];
-            //    }
-            //for (int i = 0; i < w / 2; i++)
-            //    for (int j = h / 2; j < Module[0].Length - h / 2; j++)
-            //    {
-            //        Module[i][j] = Module[w / 2][j];
-            //        Module[Module.Length - 1 - i][j] = Module[Module.Length - 1 - w / 2][j];
-            //    }
-
+            HOGMatrixWithoutNormalization = HOGMatrix.Clone();
             
 
             for (int i = 0; i < HOGMatrix.W; i++)
@@ -94,13 +52,10 @@ namespace NeuralNetworkLibrary
                     if (s != 0)
                         for (int k = 0; k < HOGMatrix.D; k++)
                         {
-                            HOGMatrix.matrix[i][j][k] = HOGMatrix.matrix[i][j][k] / s; //(float)Math.Sqrt(Module[i][j]);// * 10;
+                            HOGMatrix.matrix[i][j][k] = HOGMatrix.matrix[i][j][k] / s;
                             
                         }
-                    Module[i][j] = (float)Math.Sqrt(Module[i][j]);// / s;
                 }
-
-            //ArrayToBitmap(Module).Save(@"C:\Users\Kirill\Pictures\0.jpg");
         }
 
 
@@ -111,7 +66,7 @@ namespace NeuralNetworkLibrary
             x /= l;
             if (x > 0)
             {
-                if (x > 0.707f)
+                if (x >= 0.707106769f)
                 {
                     if (y > 0)
                         return 0;
@@ -128,7 +83,7 @@ namespace NeuralNetworkLibrary
             }
             else
             {
-                if (x > -0.707f)
+                if (x >= -0.707106769f)
                 {
                     if (y > 0)
                         return 2;
@@ -144,6 +99,9 @@ namespace NeuralNetworkLibrary
                 }
             }
         }
+
+
+
         private float[][] MakeGray(Bitmap bmp)
         {
             BWImage = new float[bmp.Width][];
@@ -238,7 +196,7 @@ namespace NeuralNetworkLibrary
 
             return B;
         }
-        private Bitmap ArrayToBitmap(float[][] matrix)
+        public Bitmap ArrayToBitmap(float[][] matrix)
         {
             Bitmap bmp = new Bitmap(matrix.Length, matrix[0].Length);
 

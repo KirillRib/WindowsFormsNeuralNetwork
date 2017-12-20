@@ -530,7 +530,7 @@ namespace NeuralNetworkLibrary
             for (int i = 0; i < OutputMatrix.W; i++)
                 for (int j = 0; j < OutputMatrix.H; j++)
                     for (int k = 0; k < OutputMatrix.D; k++)
-                        OutputMatrix.matrix[i][j][k] = ActivationFunction(InputMatrix.MultiplyPartOfTheMatrix(i, j, ArrayFilters[k]) / WFilters / HFilters - 17);
+                        OutputMatrix.matrix[i][j][k] = ActivationFunction(InputMatrix.MultiplyPartOfTheMatrix(i, j, ArrayFilters[k]) / WFilters / HFilters-5);
         }
 
         //Заполняет массив InputArray
@@ -748,16 +748,13 @@ namespace NeuralNetworkLibrary
                 for (int j = 0; j < H; j++)
                 {
                     matrix[i][j] = new float[D];
-                    for (int k = 0; k < D; k++)
-                    {
-                        matrix[i][j][k] = 0;
-                    }
                 }
             }
             this.W = W;
             this.H = H;
             this.D = D;
         }
+
         public Matrix(int W, int H, int D, float v)
         {
             matrix = new float[W][][];
@@ -939,10 +936,18 @@ namespace NeuralNetworkLibrary
                             max = matrix[i][j][k];
             return max;
         }
+        public float GetMax(int d)
+        {
+            float max = float.MinValue;
+            for (int i = 0; i < W; i++)
+                for (int j = 0; j < H; j++)
+                        if (max < matrix[i][j][d])
+                            max = matrix[i][j][d];
+            return max;
+        }
         public float[] GetMaxIndex()
         {
             float[] max = new float[4] { float.MinValue, -1, -1, -1 };
-            string s = "";
             for (int i = 0; i < W; i++)
                 for (int j = 0; j < H; j++)
                     for (int k = 0; k < D; k++)
@@ -956,6 +961,31 @@ namespace NeuralNetworkLibrary
                             
             return max;
         }
+        public float[] GetMaxIndex(int d)
+        {
+            float[] max = new float[4] { float.MinValue, -1, -1, -1 };
+            for (int i = 0; i < W; i++)
+                for (int j = 0; j < H; j++)
+                        if (max[0] < matrix[i][j][d])
+                        {
+                            max[0] = matrix[i][j][d];
+                            max[1] = i;
+                            max[2] = j;
+                            max[3] = d;
+                        }
+
+            return max;
+        }
+        public Matrix GetPartOfMatrix(int x, int y, int w, int h)
+        {
+            Matrix M = new Matrix(w, h, D);
+            for (int i = 0; i < w; i++)
+                for (int j = 0; j < h; j++)
+                    for (int k = 0; k < D; k++)
+                        M.matrix[i][j][k] = matrix[x + i][y + j][k];
+            return M;
+        }
+
         public void ToNormalizeVectors(float m)
         {
             float _m = 0;
@@ -974,6 +1004,50 @@ namespace NeuralNetworkLibrary
                     for (int k = 0; k < D; k++)
                         matrix[i][j][k] *= _m;
                 }
+        }
+    
+        //Только при d == 1
+        public Matrix GetMatrixSum(int w, int h)
+        {
+            if (D != 1)
+                Console.WriteLine("D != 1!!!");
+            float[][] sum = new float[W][];
+            for (int i = 0; i < W; i++)
+                sum[i] = new float[H];
+
+            sum[0][0] = matrix[0][0][0];
+            for (int i = 1; i < W; i++)
+                sum[i][0] = matrix[i][0][0] + sum[i - 1][0];
+            for (int i = 1; i < H; i++)
+                sum[0][i] = matrix[0][i][0] + sum[0][i - 1];
+            for (int i = 1; i < W; i++)
+                for (int j = 1; j < H; j++)
+                    sum[i][j] = matrix[i][j][0] + sum[i - 1][j] + sum[i][j - 1] - sum[i - 1][j - 1];
+            w--;
+            h--;
+            Matrix M = new Matrix(W - w, H - h, 1);
+            for (int i = 0; i < W - w; i++)
+                for (int j = 0; j < H - h; j++)
+                    M.matrix[i][j][0] = (sum[i + w][j + h] - sum[i + w][j] - sum[i][j + h] + sum[i][j]) / w / h;
+
+            float s1 = 0;
+            float s2 = 0;
+            for (int i = 0; i < W - w; i++)
+                for (int j = 0; j < H - h; j++)
+                    if (M.matrix[i][j][0] > 0.05f)
+                    {
+                        M.matrix[i][j][0] = 1;
+                        s1++;
+                    }
+                    else
+                    {
+                        M.matrix[i][j][0] = 0;
+                        s2++;
+                    }
+            Console.WriteLine("S1 = {0}   S2 = {1}", s1, s2);
+
+
+            return M;
         }
 
         //Случаным образом изменяет сеть
@@ -1039,6 +1113,23 @@ namespace NeuralNetworkLibrary
                 }
             }
             return s / W / H / D;
+        }
+        public Matrix GetModuleMatrix()
+        {
+            Matrix ModuleMatrix = new Matrix(W, H, 1);
+            for (int i = 0; i < W; i++)
+            {
+                for (int j = 0; j < H; j++)
+                {
+                    float s = 0;
+                    for (int k = 0; k < D; k++)
+                    {
+                        s += this.matrix[i][j][k] * this.matrix[i][j][k];
+                    }
+                    ModuleMatrix.matrix[i][j][0] = (float)Math.Sqrt(s) / D;
+                }
+            }
+            return ModuleMatrix;
         }
     }
     public class DataArray
