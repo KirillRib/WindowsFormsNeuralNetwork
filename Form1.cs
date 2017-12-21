@@ -30,7 +30,7 @@ namespace WindowsFormsNeuralNetwork
         {
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             videodevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-            videoSource = new VideoCaptureDevice(videodevices[0].MonikerString);
+            videoSource = new VideoCaptureDevice(videodevices[1].MonikerString);
             videoSourcePlayer1.VideoSource = videoSource;
 
             System.DateTime DT = DateTime.Now;
@@ -269,8 +269,8 @@ namespace WindowsFormsNeuralNetwork
                         ConvolutionaryLayerArray[index].ToCorrectLayer(ConvolutionaryLayerArrayFace[index].ErrorMatrix, 2);
 
 
-                        //BM = new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\6\" + j / 6 + ".jpg"), 40 * (index + 3), 40 * (index + 3));
-                        //pictureBox1.Image = AddFrameOnImage(BM, (int)a[1] * 10, (int)a[2] * 10, ConvolutionaryLayerArrayFace[index].WFilters * 10, ConvolutionaryLayerArrayFace[index].HFilters * 10);
+                        //BM = new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\9\" + j / 6 + ".png"), 40 * (index + 3), 40 * (index + 3));
+                       // pictureBox1.Image = AddFrameOnImage(BM, (int)a[1] * 10, (int)a[2] * 10, ConvolutionaryLayerArrayFace[index].WFilters * 10, ConvolutionaryLayerArrayFace[index].HFilters * 10);
                         //Thread.Sleep(p);
 
                         Erorr += Math.Abs(max - TrainingSetArray[j].OutputArray[0]) / TrainingSetArray.Length;
@@ -319,20 +319,19 @@ namespace WindowsFormsNeuralNetwork
         public TrainingSet[] LoadImages()
         {
             Random rnd = new Random();
-            TrainingSet[] TrainingSetArray = new TrainingSet[2200 * 3];
+            TrainingSet[] TrainingSetArray = new TrainingSet[2800 * 3];
             List<TrainingSet> TrainingSetLis = new List<TrainingSet>();
             //StreamReader sr = new StreamReader(@"C:\Users\Kirill\Pictures\Image\1\Face.txt");
-            for (int i = 0; i < 1100; i++)
+            for (int i = 0; i < 1400; i++)
             {
                 for (int k = 0; k < 3; k++)
                 {
-                    TrainingSetLis.Add(new TrainingSet(new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\0\" + (i) + ".jpg"), 100 * (k + 3), 100 * (k + 3))).HOGMatrix, new float[] { 0, k }));
-                    TrainingSetLis.Add(new TrainingSet(new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\6\" + i + ".jpg"), 40 * (k + 3), 40 * (k + 3))).HOGMatrix, new float[] { 1, k }));
-                    //TrainingSetLis.Add(new TrainingSet(new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\4\" + i + ".jpg"), 40 * (k + 3), 40 * (k + 3))).HOGMatrix, new float[] { 1, k }));
+                    TrainingSetLis.Add(new TrainingSet(new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\0\" + (i) + ".jpg"), 70 * (k + 3), 70 * (k + 3))).HOGMatrix, new float[] { 0, k }));
+                    TrainingSetLis.Add(new TrainingSet(new HOG(new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\Image\9\" + i + ".png"), 40 * (k + 3), 40 * (k + 3))).HOGMatrix, new float[] { 1, k }));
 
                 }
             }
-            for (int i = 0; i < 2200 * 3; i++)
+            for (int i = 0; i < 2800 * 3; i++)
             {
                 //int ind = (int)(rnd.NextDouble() * TrainingSetLis.Count);
                 TrainingSetArray[i] = TrainingSetLis[i];
