@@ -35,10 +35,6 @@ namespace WindowsFormsNeuralNetwork
             videoSourcePlayer1.VideoSource = videoSource;
 
             System.DateTime DT = DateTime.Now;
-            Bitmap b = new Bitmap(new Bitmap(@"C:\Users\Kirill\Pictures\000.jpg"), 200, 150);
-
-            for (int i = 0;i < 10; i++)
-                new HOG(b);
 
             Console.WriteLine("Time 1: {0}s", (DateTime.Now - DT).TotalSeconds);
 
@@ -51,9 +47,9 @@ namespace WindowsFormsNeuralNetwork
                 int w = (3 * (j + 3)) / 3;
                 int h = (3 * (j + 3)) / 3;
 
-                ConvolutionaryLayerArray[j] = new ConvolutionaryLayer(new Matrix[] { 5 * new Matrix(w, h, 8, rnd), 5 * new Matrix(w, h, 8, rnd) , 5 * new Matrix(w, h, 8, rnd)}, w, h);
+                ConvolutionaryLayerArray[j] = new ConvolutionaryLayer(new Matrix[] { 5 * new Matrix(w, h, 8, rnd), 5 * new Matrix(w, h, 8, rnd), 5 * new Matrix(w, h, 8, rnd) }, w, h);
 
-                ConvolutionaryLayerArrayFace[j] = new ConvolutionaryLayer( new Matrix[] { 5 * new Matrix(w * 3, h * 3, 3, rnd), 5 * new Matrix(w * 3, h * 3, 3, rnd), 5 * new Matrix(w * 3, h * 3, 3, rnd) }, w * 3, h * 3);
+                ConvolutionaryLayerArrayFace[j] = new ConvolutionaryLayer(new Matrix[] { 5 * new Matrix(w * 3, h * 3, 3, rnd), 5 * new Matrix(w * 3, h * 3, 3, rnd), 5 * new Matrix(w * 3, h * 3, 3, rnd) }, w * 3, h * 3);
 
 
 
@@ -73,16 +69,16 @@ namespace WindowsFormsNeuralNetwork
             //pictureBox7.SizeMode = PictureBoxSizeMode.Zoom;
             //pictureBox13.SizeMode = PictureBoxSizeMode.Zoom;
 
-            Thread myThread = new Thread(TreatmentImage);//Training TreatmentImage
+            myThread = new Thread(TreatmentImage);//Training TreatmentImage
             myThread.Start();
             //CreatingLibrary();
 
         }
 
-
+        Thread myThread;
         NeuralNetwork mNeuralNetwork;
         ConvolutionaryLayer[] ConvolutionaryLayerArray, ConvolutionaryLayerArrayFace;
-        
+
         FilterInfoCollection videodevices;
         VideoCaptureDevice videoSource;
         private void videoSourcePlayer1_NewFrame(object sender, ref Bitmap image)
@@ -112,8 +108,8 @@ namespace WindowsFormsNeuralNetwork
                     BM.Save(name + ind + ".jpg", IF);
                     ind++;
                 }
-                    
-                
+
+
                 Thread.Sleep(150);
             }
             Console.WriteLine("Stop");
@@ -135,7 +131,7 @@ namespace WindowsFormsNeuralNetwork
 
             while (Form1Active)
             {
-                if (BM != null) 
+                if (BM != null)
                 {
                     DT = DateTime.Now;
                     HOG hog = new HOG(BM);
@@ -148,11 +144,11 @@ namespace WindowsFormsNeuralNetwork
                     {
                         ConvolutionaryLayerArray[k].InputMatrix = hog.HOGMatrix;
                         ConvolutionaryLayerArray[k].Calculate();
-                        
+
 
                         ConvolutionaryLayerArrayFace[k].InputMatrix = ConvolutionaryLayerArray[k].OutputMatrix;
                         ConvolutionaryLayerArrayFace[k].Calculate();
-                        
+
 
                         if (ConvolutionaryLayerArrayFace[k].OutputMatrix.GetMax() > max)
                         {
@@ -282,7 +278,7 @@ namespace WindowsFormsNeuralNetwork
                         //Thread.Sleep(p);
 
                         Erorr += Math.Abs(max - TrainingSetArray[j].OutputArray[0]) / TrainingSetArray.Length;
-                        
+
                     }
                     else
                     {
@@ -556,7 +552,7 @@ namespace WindowsFormsNeuralNetwork
 
         public void CreatingLibrary()
         {
-            Random rnd = new Random(); 
+            Random rnd = new Random();
             List<string> f = Directory.GetFiles(@"C:\Users\Kirill\Pictures\Image\9\").ToList<string>();
             int c = 0;
             while (f.Count > 0)
@@ -598,12 +594,14 @@ namespace WindowsFormsNeuralNetwork
         private bool Form1Active = true;
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
-            
+            System.Environment.Exit(0);
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             Form1Active = false;
+            myThread.Abort();
+            myThread.Join();
         }
 
         private void SetText(string text)
